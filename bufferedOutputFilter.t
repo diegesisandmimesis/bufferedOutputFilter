@@ -117,9 +117,7 @@ class BufferedOutputFilter: OutputFilter, PreinitObject
 				// it was found inside the markup tags or
 				// not (boolean true if it was, nil otherwise).
 				if(o[2] == true)
-					val.append(
-						bofFormat(o[1])
-					);
+					val.append(bofFormat(o[1]));
 				else
 					val.append(o[1]);
 			});
