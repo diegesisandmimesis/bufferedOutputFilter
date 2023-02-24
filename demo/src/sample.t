@@ -40,9 +40,9 @@ versionInfo:    GameID
 ;
 
 pebbleOutputFilter: BufferedOutputFilter
-	lineBufferFilterTag = 'pebble'
+	bofTag = 'pebble'
 
-	lineBufferFilterFormat(str) {
+	bofFormat(str) {
 		local ar, buf, r;
 
 		// Split the string at whitespace.
