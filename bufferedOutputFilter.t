@@ -146,28 +146,64 @@ class BufferedOutputFilter: OutputFilter, PreinitObject
 	bofFormat(str) { return(str); }
 ;
 
+// Line-buffered output filter
 class LineBufferedOutputFilter: BufferedOutputFilter
+	// Newline character(s).  Inserted at the end of every output line.
 	lineBufferNewline = '\n'
+
+	// Prefix and suffix for each line.  Can be nil.
+	// If you wanted to have every line indented with a single tab,
+	// you could use lineBufferPrefix = '\t', for example.
 	lineBufferPrefix = nil
 	lineBufferSuffix = nil
-	lineBufferWidth = 78
 
+	// Width of each line.  Note that the line is wrapped when adding
+	// the next word would put more than this many characters in
+	// the buffer.  Also note that the logic is very simplistic and
+	// doesn't figure the RENDERED width of the line (that is, '\t'
+	// counts as two characters, not however many spaces a tab is).
+	lineBufferWidth = 70
+
+	// Pattern used to split the text into words for the purposes of
+	// line wrapping.
 	lineBufferSplitPattern = R'<space>+'
 
-	lineBufferFlush(buf) {
+	// Clear the passed buffer and then add whatever line prefix, if any,
+	// is defined.
+	lineBufferClear(buf) {
 		buf.deleteChars(1);
-		if(lineBufferPrefix) buf.append(lineBufferPrefix);
+		if(lineBufferPrefix)
+			buf.append(lineBufferPrefix);
 	}
 
-	lineBufferAppend(outstr, buf) {
-		if(lineBufferNewline) outstr.append(lineBufferNewline);
-		if(lineBufferPrefix) outstr.append(lineBufferPrefix);
-		//if(buf.length > 0) outstr.append(toString(buf));
-		outstr.append(toString(buf));
-		if(lineBufferSuffix) outstr.append(lineBufferSuffix);
-		if(lineBufferNewline) outstr.append(lineBufferNewline);
+	// Flush the buffer (second arg) to the output stream (first arg).
+	// The output stream is actually a buffer itself, but w/e.
+	lineBufferFlush(outstr, buf) {
+		// If we have a newline character defined, insert it.
+		if(lineBufferNewline)
+			outstr.append(lineBufferNewline);
+
+		// Insert the line prefix, if defined.
+		if(lineBufferPrefix)
+			outstr.append(lineBufferPrefix);
+
+		// Append the contents of the buffer.
+		if(buf.length > 0)
+			outstr.append(toString(buf));
+
+		// Add the line suffix, if defined.
+		if(lineBufferSuffix)
+			outstr.append(lineBufferSuffix);
+
+		// Add a newline.
+		if(lineBufferNewline)
+			outstr.append(lineBufferNewline);
+
+		// Clear the buffer we just flushed to output.
+		lineBufferClear(buf);
 	}
 
+	// Line-buffered formatter method.
 	bofFormat(str) {
 		local ar, buf, r;
 
@@ -183,43 +219,36 @@ class LineBufferedOutputFilter: BufferedOutputFilter
 		buf = new StringBuffer();
 		r = new StringBuffer();
 
-		// Start out with an indentation.
-		lineBufferFlush(buf);
+		// Prep the line buffer.  This will clear it, which we
+		// don't need to do right now, but it will also add whatever
+		// line prefix we have defined.
+		lineBufferClear(buf);
 
 		// Go through every word(-ish thing) in the string.
 		ar.forEach(function(o) {
-			// If we just have a newline by itself, insert a
-			// line break and reset the line buffer.
+			// If the "word" is just a newline by itself, insert a
+			// paragraph break and reset the line buffer.
 			if(rexMatch('^<space>*<newline>+<space>*$', o) != nil) {
-				lineBufferAppend(r, buf);
-				//r.append(toString(buf));
-				//r.append('<.p>\n');
-				//r.append(quoteOutputFilterIndent);
-				lineBufferFlush(buf);
+				buf.append('<.p>');
+				lineBufferFlush(r, buf);
 				return;
+			}
+
+			// Check to see if the current word would make the
+			// line too long.  If so, flush and clear the buffer.
+			if((buf.length() + o.length()) > lineBufferWidth) {
+				lineBufferFlush(r, buf);
 			}
 
 			// Append the word to the line buffer and add a space.
 			buf.append(o);
 			buf.append(' ');
-
-			// If we've reached the end of a line, flush the
-			// line buffer to the return buffer and reset the
-			// line buffer.
-			if(buf.length() > lineBufferWidth) {
-				lineBufferAppend(r, buf);
-				lineBufferFlush(buf);
-			}
 		});
 
 		// Add anything left over in the line buffer to the return
 		// buffer.
-		if(buf.length > 0) {
-			lineBufferAppend(r, buf);
-			//r.append('\n\t\t');
-			//r.append(toString(buf));
-			//r.append('\n');
-		}
+		if(buf.length > 0)
+			lineBufferFlush(r, buf);
 		
 		// Return the return buffer as a string.
 		return(toString(r));
@@ -231,71 +260,3 @@ quoteOutputFilter: LineBufferedOutputFilter
 	lineBufferPrefix = '\t\t'
 	lineBufferWidth = 40
 ;
-
-/*
-quoteOutputFilter: BufferedOutputFilter
-	bofTag = 'quote'
-
-	lineBufferSplitPattern = '<space>+'
-	quoteOutputFilterIndent = '\t\t'
-
-	bofFormat(str) {
-		local ar, buf, r;
-
-		// Split the string at whitespace.
-		//ar = str.split(R'<space>+');
-		ar = str.split(lineBufferSplitPattern);
-
-		// If we don't have any spaces, we don't have anything to do.
-		if(ar.length < 2)
-			return(str);
-
-		// buf will hold our line buffer and r will hold our return
-		// buffer.
-		buf = new StringBuffer();
-		r = new StringBuffer();
-
-		// Start out with an indentation.
-		buf.append(quoteOutputFilterIndent);
-
-		// Go through every word(-ish thing) in the string.
-		ar.forEach(function(o) {
-			// If we just have a newline by itself, insert a
-			// line break and reset the line buffer.
-			if(rexMatch('^<space>*<newline>+<space>*$', o) != nil) {
-				r.append(toString(buf));
-				r.append('<.p>\n');
-				r.append(quoteOutputFilterIndent);
-				buf.deleteChars(1);
-				buf.append(quoteOutputFilterIndent);
-				return;
-			}
-
-			// Append the word to the line buffer and add a space.
-			buf.append(o);
-			buf.append(' ');
-
-			// If we've reached the end of a line, flush the
-			// line buffer to the return buffer and reset the
-			// line buffer.
-			if(buf.length() > 40) {
-				r.append('\n\t\t');
-				r.append(toString(buf));
-				r.append('\n');
-				buf.deleteChars(1);
-				buf.append(quoteOutputFilterIndent);
-			}
-		});
-		// Add anything left over in the line buffer to the return
-		// buffer.
-		if(buf.length > 0) {
-			r.append('\n\t\t');
-			r.append(toString(buf));
-			r.append('\n');
-		}
-		
-		// Return the return buffer as a string.
-		return(toString(r));
-	}
-;
-*/
