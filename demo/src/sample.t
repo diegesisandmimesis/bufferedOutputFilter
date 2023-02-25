@@ -39,6 +39,7 @@ versionInfo:    GameID
 	}
 ;
 
+/*
 pebbleOutputFilter: BufferedOutputFilter
 	bofTag = 'pebble'
 
@@ -99,6 +100,7 @@ pebbleOutputFilter: BufferedOutputFilter
 		return(toString(r));
 	}
 ;
+*/
 
 startRoom: Room 'Void'
         "This is a featureless void."
@@ -107,7 +109,7 @@ startRoom: Room 'Void'
 +pebble: Thing 'small round pebble' 'pebble'
 	"This is a bit of random pre-markup text.
 	<.p>
-	<PEBBLE>
+	<QUOTE>
 	Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do
 	eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim
 	ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut
@@ -123,15 +125,37 @@ startRoom: Room 'Void'
 	reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla
 	pariatur. Excepteur sint occaecat cupidatat non proident, sunt in
 	culpa qui officia deserunt mollit anim id est laborum.
-	</PEBBLE>
+	</QUOTE>
 	<.p>
 	This is a bit of concluding post-markup text. "
+	foozle = 'This is a bit of random pre-markup text.
+	<.p>
+	<QUOTE>
+	Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do
+	eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim
+	ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut
+	aliquip ex ea commodo consequat. Duis aute irure dolor in
+	reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla
+	pariatur. Excepteur sint occaecat cupidatat non proident, sunt in
+	culpa qui officia deserunt mollit anim id est laborum.
+	\n
+	Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do
+	eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim
+	ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut
+	aliquip ex ea commodo consequat. Duis aute irure dolor in
+	reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla
+	pariatur. Excepteur sint occaecat cupidatat non proident, sunt in
+	culpa qui officia deserunt mollit anim id est laborum.
+	</QUOTE>
+	<.p>
+	This is a bit of concluding post-markup text. '
 ;
 
 gameMain: GameMainDef
 	initialPlayerChar = me
 	newGame() {
-		mainOutputStream.addOutputFilter(pebbleOutputFilter);
+		mainOutputStream.addOutputFilter(quoteOutputFilter);
 		runGame(true);
+		//"<<quoteOutputFilter.filterText(nil, pebble.foozle)>>\n ";
 	}
 ;

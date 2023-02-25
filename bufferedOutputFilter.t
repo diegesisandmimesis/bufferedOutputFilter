@@ -41,24 +41,34 @@ class BufferedOutputFilter: OutputFilter, PreinitObject
 			deactivate();
 			return;
 		}
-		_bofPattern =new RexPattern('<nocase><langle>(/'
+		_bofPattern = new RexPattern('<nocase><langle>(/'
 			+ bofTag + '|' + bofTag + ')<rangle>');
 	}
+
+	bufferedFilterActive() {
+		// Only filter text if we're currently active.
+		if(isActive == nil)
+			return(nil);
+
+		// We need a filter to work.
+		if(_bofPattern == nil)
+			return(nil);
+
+		return(true);
+	}
+
+	bofRexSearch(val) { return(rexSearch(_bofPattern, val)); }
 
 	// Main filter method.  Entry point from the T3 OutputFilter logic.
 	filterText(ostr, val) {
 		local idx, str;
 
-		// Only filter text if we're currently active.
-		if(isActive == nil)
-			return(inherited(ostr, val));
-
-		// We need a filter to work.
-		if(_bofPattern == nil)
+		if(bufferedFilterActive() != true)
 			return(inherited(ostr, val));
 
 		// Get the first occurance of our markup tag.
-		idx = rexSearch(_bofPattern, val);
+		//idx = rexSearch(_bofPattern, val);
+		idx = bofRexSearch(val);
 
 		// Loop until we're out of input or tags.
 		while(idx != nil) {
@@ -90,7 +100,8 @@ class BufferedOutputFilter: OutputFilter, PreinitObject
 			val = str;
 
 			// Find the next tag, if any.
-			idx = rexSearch(_bofPattern, str);
+			//idx = rexSearch(_bofPattern, str);
+			idx = bofRexSearch(str);
 		}
 
 		// If we found matching text, we'll have a results
@@ -134,3 +145,157 @@ class BufferedOutputFilter: OutputFilter, PreinitObject
 
 	bofFormat(str) { return(str); }
 ;
+
+class LineBufferedOutputFilter: BufferedOutputFilter
+	lineBufferNewline = '\n'
+	lineBufferPrefix = nil
+	lineBufferSuffix = nil
+	lineBufferWidth = 78
+
+	lineBufferSplitPattern = R'<space>+'
+
+	lineBufferFlush(buf) {
+		buf.deleteChars(1);
+		if(lineBufferPrefix) buf.append(lineBufferPrefix);
+	}
+
+	lineBufferAppend(outstr, buf) {
+		if(lineBufferNewline) outstr.append(lineBufferNewline);
+		if(lineBufferPrefix) outstr.append(lineBufferPrefix);
+		//if(buf.length > 0) outstr.append(toString(buf));
+		outstr.append(toString(buf));
+		if(lineBufferSuffix) outstr.append(lineBufferSuffix);
+		if(lineBufferNewline) outstr.append(lineBufferNewline);
+	}
+
+	bofFormat(str) {
+		local ar, buf, r;
+
+		// Split the string at whitespace.
+		ar = str.split(lineBufferSplitPattern);
+
+		// If we don't have any spaces, we don't have anything to do.
+		if(ar.length < 2)
+			return(str);
+
+		// buf will hold our line buffer and r will hold our return
+		// buffer.
+		buf = new StringBuffer();
+		r = new StringBuffer();
+
+		// Start out with an indentation.
+		lineBufferFlush(buf);
+
+		// Go through every word(-ish thing) in the string.
+		ar.forEach(function(o) {
+			// If we just have a newline by itself, insert a
+			// line break and reset the line buffer.
+			if(rexMatch('^<space>*<newline>+<space>*$', o) != nil) {
+				lineBufferAppend(r, buf);
+				//r.append(toString(buf));
+				//r.append('<.p>\n');
+				//r.append(quoteOutputFilterIndent);
+				lineBufferFlush(buf);
+				return;
+			}
+
+			// Append the word to the line buffer and add a space.
+			buf.append(o);
+			buf.append(' ');
+
+			// If we've reached the end of a line, flush the
+			// line buffer to the return buffer and reset the
+			// line buffer.
+			if(buf.length() > lineBufferWidth) {
+				lineBufferAppend(r, buf);
+				lineBufferFlush(buf);
+			}
+		});
+
+		// Add anything left over in the line buffer to the return
+		// buffer.
+		if(buf.length > 0) {
+			lineBufferAppend(r, buf);
+			//r.append('\n\t\t');
+			//r.append(toString(buf));
+			//r.append('\n');
+		}
+		
+		// Return the return buffer as a string.
+		return(toString(r));
+	}
+;
+
+quoteOutputFilter: LineBufferedOutputFilter
+	bofTag = 'quote'
+	lineBufferPrefix = '\t\t'
+	lineBufferWidth = 40
+;
+
+/*
+quoteOutputFilter: BufferedOutputFilter
+	bofTag = 'quote'
+
+	lineBufferSplitPattern = '<space>+'
+	quoteOutputFilterIndent = '\t\t'
+
+	bofFormat(str) {
+		local ar, buf, r;
+
+		// Split the string at whitespace.
+		//ar = str.split(R'<space>+');
+		ar = str.split(lineBufferSplitPattern);
+
+		// If we don't have any spaces, we don't have anything to do.
+		if(ar.length < 2)
+			return(str);
+
+		// buf will hold our line buffer and r will hold our return
+		// buffer.
+		buf = new StringBuffer();
+		r = new StringBuffer();
+
+		// Start out with an indentation.
+		buf.append(quoteOutputFilterIndent);
+
+		// Go through every word(-ish thing) in the string.
+		ar.forEach(function(o) {
+			// If we just have a newline by itself, insert a
+			// line break and reset the line buffer.
+			if(rexMatch('^<space>*<newline>+<space>*$', o) != nil) {
+				r.append(toString(buf));
+				r.append('<.p>\n');
+				r.append(quoteOutputFilterIndent);
+				buf.deleteChars(1);
+				buf.append(quoteOutputFilterIndent);
+				return;
+			}
+
+			// Append the word to the line buffer and add a space.
+			buf.append(o);
+			buf.append(' ');
+
+			// If we've reached the end of a line, flush the
+			// line buffer to the return buffer and reset the
+			// line buffer.
+			if(buf.length() > 40) {
+				r.append('\n\t\t');
+				r.append(toString(buf));
+				r.append('\n');
+				buf.deleteChars(1);
+				buf.append(quoteOutputFilterIndent);
+			}
+		});
+		// Add anything left over in the line buffer to the return
+		// buffer.
+		if(buf.length > 0) {
+			r.append('\n\t\t');
+			r.append(toString(buf));
+			r.append('\n');
+		}
+		
+		// Return the return buffer as a string.
+		return(toString(r));
+	}
+;
+*/
