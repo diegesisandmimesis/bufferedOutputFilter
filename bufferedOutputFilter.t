@@ -168,12 +168,9 @@ class LineBufferedOutputFilter: BufferedOutputFilter
 	// line wrapping.
 	lineBufferSplitPattern = R'<space>+'
 
-	// Clear the passed buffer and then add whatever line prefix, if any,
-	// is defined.
+	// Clear the passed buffer.
 	lineBufferClear(buf) {
 		buf.deleteChars(1);
-		if(lineBufferPrefix)
-			buf.append(lineBufferPrefix);
 	}
 
 	// Flush the buffer (second arg) to the output stream (first arg).
@@ -229,8 +226,8 @@ class LineBufferedOutputFilter: BufferedOutputFilter
 			// If the "word" is just a newline by itself, insert a
 			// paragraph break and reset the line buffer.
 			if(rexMatch('^<space>*<newline>+<space>*$', o) != nil) {
-				buf.append('<.p>');
 				lineBufferFlush(r, buf);
+				r.append('<.p>');
 				return;
 			}
 
