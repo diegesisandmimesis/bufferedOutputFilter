@@ -1,15 +1,15 @@
 #charset "us-ascii"
 //
-// sample.t
+// custom.t
 // Version 1.0
 // Copyright 2022 Diegesis & Mimesis
 //
-// This is a very simple demonstration "game" for the bufferedOutputFilter
-// library.
+// This is a simple demonstration of how to implement custom line-buffered
+// typographic filters
 //
 // It can be compiled via the included makefile with
 //
-//	# t3make -f makefile.t3m
+//	# t3make -f custom.t3m
 //
 // ...or the equivalent, depending on what TADS development environment
 // you're using.
@@ -27,13 +27,12 @@ versionInfo:    GameID
         version = '1.0'
         IFID = '12345'
 	showAbout() {
-		"This is a simple demonstration of a BufferedOutputFilter
+		"This is a simple demonstration of a LineBufferedOutputFilter
 		filter.
 		<.p>
 		If you >EXAMINE PEBBLE, the description will contain a
-		bunch of lorem ipsum text formatted as a block quote.
-		This is declared via &lt;PEBBLE&gt;&lt;/PEBBLE&gt; tags
-		in the pebble description.
+		bunch of lorem ipsum text.  Each line will have <q>===</q>
+		added as a prefix and suffix to the line.
 		<.p>
 		That's it.
 		<.p>
@@ -46,10 +45,29 @@ versionInfo:    GameID
 	}
 ;
 
+// Custom filter declaration.
+// We use LineBufferedOutputFilter as the base class.  It applies the
+// filter markup on a line-by-line basis.
 pebbleOutputFilter: LineBufferedOutputFilter
+	// The string literal to use as the tag for this filter.
+	// In this case the filter will be applied to everything
+	// between the <PEBBLE></PEBBLE> tags.
+	// The string is case-insensitive.
 	bofTag = 'pebble'
+
+	// String literal to prepend to every line.  Can be nil.
 	lineBufferPrefix = '==='
+
+	// String literal to append to every line.  Can be nil.
 	lineBufferSuffix = '==='
+
+	// Width of each line.  Text will be wrapped (on whitespace)
+	// if adding another word would make the line longer than
+	// this many characters.  Note that the logic for evaluating
+	// line length is very simple and doesn't attempt to
+	// figure out the rendered length of whitespace, ligatures, or
+	// anything like that.  So '\t' is two characters, regardless
+	// of how many typographic spaces it renders as.
 	lineBufferWidth = 60
 ;
 
@@ -57,6 +75,9 @@ startRoom: Room 'Void'
         "This is a featureless void."
 ;
 +me: Person;
+
+// Pebble with a description using a tag matched by the filter we
+// declared above.
 +pebble: Thing 'small round pebble' 'pebble'
 	"This is a bit of random pre-markup text.
 	<.p>
@@ -84,6 +105,7 @@ startRoom: Room 'Void'
 gameMain: GameMainDef
 	initialPlayerChar = me
 	newGame() {
+		// Add our custom filter to the main output stream.
 		mainOutputStream.addOutputFilter(pebbleOutputFilter);
 		runGame(true);
 	}

@@ -4,8 +4,7 @@
 // Version 1.0
 // Copyright 2022 Diegesis & Mimesis
 //
-// This is a very simple demonstration "game" for the bufferedOutputFilter
-// library.
+// Simple demonstration of BufferedOutputFilter filtering.
 //
 // It can be compiled via the included makefile with
 //
@@ -32,7 +31,7 @@ versionInfo:    GameID
 		<.p>
 		If you >EXAMINE PEBBLE, the description will contain a
 		bunch of lorem ipsum text formatted as a block quote.
-		This is declared via &lt;PEBBLE&gt;&lt;/PEBBLE&gt; tags
+		This is declared via &lt;QUOTE&gt;&lt;/QUOTE&gt; tags
 		in the pebble description.
 		<.p>
 		That's it.
@@ -77,6 +76,7 @@ startRoom: Room 'Void'
 gameMain: GameMainDef
 	initialPlayerChar = me
 	newGame() {
+		// Add the quote filter to the main output stream.
 		mainOutputStream.addOutputFilter(quoteOutputFilter);
 		runGame(true);
 	}
