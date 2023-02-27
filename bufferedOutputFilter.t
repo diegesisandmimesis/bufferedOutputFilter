@@ -1,4 +1,94 @@
 #charset "us-ascii"
+//
+// bufferedOutputFilter.t
+//
+// This module provides a couple classes to allow you to implement simple
+// buffered output filters for typographic formatting, using HTML/XML-like
+// tags.
+//
+// For example, one of the filters provided by the module is for formatting
+// text as block quotes, so you can declare something like:
+//
+//	+pebble: Thing 'small round pebble' 'pebble'
+//		"The pebble says:
+//		<QUOTE>
+//		Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do
+//		eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut
+//		enim ad minim veniam, quis nostrud exercitation ullamco laboris
+//		nisi ut aliquip ex ea commodo consequat.
+//		</QUOTE> "
+//	;
+//
+// Which will produce:
+//
+// > X PEBBLE
+// The pebble says:
+//
+//       Lorem ipsum dolor sit amet, consectetur
+//       adipiscing elit, sed do eiusmod tempor
+//       incididunt ut labore et dolore magna
+//       aliqua.  Ut enim ad minim veniam, quis
+//       nostrud exercitation ullamco laboris
+//       nisi ut aliquip ex ea commodo consequat.
+//
+//
+// BASE CLASSES:
+//
+// BufferedOutputFilter
+//
+//	Use this if you want to apply formatting to the entire block of
+//	text as a single thing.  For example:
+//
+//		class MyFilter:  BufferedOutputFilter
+//			// The tag the filter will apply to.  In this
+//			// case we'll apply to text between <FOOZLE></FOOZLE>
+//			// tags.  The tag string is case insensitive.
+//			bofTag = 'foozle'
+//
+//			// Format matching strings.  The argument is the
+//			// text inside the tags, and we return whatever we
+//			// want the text to become.
+//			bofFormat(str) {
+//				return('<q>' + str + '</q>');
+//			}
+//		;
+//
+//	In this case we've implemented a filter that given the string
+//
+//		<FOOZLE>This space intentionally left blank</FOOZLE>
+//
+//	...will return...
+//
+//		"This space intentionally left blank"
+//
+//
+// LineBufferedOutputFilter
+//
+//	This filter formats text line by line.  The line length is defined
+//	by the lineBufferWidth property on the filter, and lines are wrapped
+//	at whitespace whenever adding the next word would cause the line to
+//	be longer than lineBufferWidth characters.  Line length is computed
+//	by a naive method that doesn't attempt to figure out the rendered size
+//	of the text.  So for example '\t' is two characters long, and it
+//	won't attempt to figure out how many typographical spaces a tab
+//	will be rendered as.
+//
+//	As an example, here is the complete quote filter souce:
+//
+//		// We use LineBufferedOutputFilter as our base class
+//		quoteOutputFilter: LineBufferedOutputFilter
+//			// We format text inside <QUOTE></QUOTE> tags.
+//			bofTag = 'quote'
+//
+//			// We prefix each line with two tabs.
+//			lineBufferPrefix = '\t\t'
+//
+//			// We wrap lines whenever adding a word would make
+//			// the line longer than 40 characters.
+//			lineBufferWidth = 40
+//		;
+//
+//
 #include <adv3.h>
 #include <en_us.h>
 
