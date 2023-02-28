@@ -157,7 +157,6 @@ class BufferedOutputFilter: OutputFilter, PreinitObject
 			return(inherited(ostr, val));
 
 		// Get the first occurance of our markup tag.
-		//idx = rexSearch(_bofPattern, val);
 		idx = bofRexSearch(val);
 
 		// Loop until we're out of input or tags.
@@ -190,7 +189,6 @@ class BufferedOutputFilter: OutputFilter, PreinitObject
 			val = str;
 
 			// Find the next tag, if any.
-			//idx = rexSearch(_bofPattern, str);
 			idx = bofRexSearch(str);
 		}
 
@@ -218,7 +216,7 @@ class BufferedOutputFilter: OutputFilter, PreinitObject
 				// it was found inside the markup tags or
 				// not (boolean true if it was, nil otherwise).
 				if(o[2] == true)
-					val.append(bofFormat(o[1]));
+					val.append(bofFilterText(o[1]));
 				else
 					val.append(o[1]);
 			});
@@ -233,6 +231,7 @@ class BufferedOutputFilter: OutputFilter, PreinitObject
 		return(val);
 	}
 
+	bofFilterText(str) { return(bofFormat(str)); }
 	bofFormat(str) { return(str); }
 ;
 
@@ -263,35 +262,45 @@ class LineBufferedOutputFilter: BufferedOutputFilter
 		buf.deleteChars(1);
 	}
 
-	// Flush the buffer (second arg) to the output stream (first arg).
-	// The output stream is actually a buffer itself, but w/e.
-	lineBufferFlush(outstr, buf) {
-		// If we have a newline character defined, insert it.
+	// Format an individual line of tagged text.
+	bofFilter(str) {
+		local buf;
+
+		buf = new StringBuffer();
 		if(lineBufferNewline)
-			outstr.append(lineBufferNewline);
+			buf.append(lineBufferNewline);
 
 		// Insert the line prefix, if defined.
 		if(lineBufferPrefix)
-			outstr.append(lineBufferPrefix);
+			buf.append(lineBufferPrefix);
 
 		// Append the contents of the buffer.
-		if(buf.length > 0)
-			outstr.append(toString(buf));
+		if(str.length > 0)
+			buf.append(toString(str));
 
 		// Add the line suffix, if defined.
 		if(lineBufferSuffix)
-			outstr.append(lineBufferSuffix);
+			buf.append(lineBufferSuffix);
 
 		// Add a newline.
 		if(lineBufferNewline)
-			outstr.append(lineBufferNewline);
+			buf.append(lineBufferNewline);
+
+		return(toString(buf));
+	}
+
+	// Flush the buffer (second arg) to the output stream (first arg).
+	// The output stream is actually a buffer itself, but w/e.
+	lineBufferFlush(outstr, buf) {
+		// Append the formatted line to the output buffer.
+		outstr.append(bofFilter(toString(buf)));
 
 		// Clear the buffer we just flushed to output.
 		lineBufferClear(buf);
 	}
 
-	// Line-buffered formatter method.
-	bofFormat(str) {
+	// Line-buffered filter method.
+	bofFilterText(str) {
 		local ar, buf, r;
 
 		// Split the string at whitespace.
