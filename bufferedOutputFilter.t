@@ -39,7 +39,7 @@
 //	Use this if you want to apply formatting to the entire block of
 //	text as a single thing.  For example:
 //
-//		class MyFilter:  BufferedOutputFilter
+//		myFilter:  BufferedOutputFilter
 //			// The tag the filter will apply to.  In this
 //			// case we'll apply to text between <FOOZLE></FOOZLE>
 //			// tags.  The tag string is case insensitive.
